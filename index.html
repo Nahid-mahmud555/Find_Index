@@ -178,104 +178,112 @@
 </div>
 
 <script>
-    // গুরুত্বপূর্ণ: এখানে তোমার গুগল অ্যাপস স্ক্রিপ্ট লিঙ্কটি বসাও
-    const sheetURL = "https://script.google.com/macros/s/AKfycbxEO190dbJ37SIjKtLHUYUeS4KYSPllJmmc-2PBQMXYChfhII_9urjm9LDuAZaWFeZkMw/exec";
+const sheetURL = "https://script.google.com/macros/s/AKfycbwqpBHcQWH5QOYkFVVMkRDx83BGEPr8QC3AeWH4GyTUE82q2dYpdE4DztE_48lbz3cxjA/exec";
 
-    // গুগল শিট থেকে বই লোড করার ফাংশন
-    async function loadBooks() {
-        try {
-            const response = await fetch(sheetURL);
-            const data = await response.json();
-            const bookGrid = document.getElementById('bookGrid');
-            bookGrid.innerHTML = ''; // আগের লেখা মুছে ফেলবে
+async function loadBooks() {
+    try {
+        const response = await fetch(sheetURL);
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        // যেহেতু Apps Script থেকে TEXT পাঠানো হচ্ছে, তাই আগে text() হিসেবে নিতে হবে
+        const rawText = await response.text(); 
+        const data = JSON.parse(rawText); // এরপর সেটাকে JSON এ রূপান্তর
 
-            data.forEach(book => {
-                bookGrid.innerHTML += `
-                    <div class="card" data-title="${book.Title}" data-cat="${book.Category}">
-                        <span class="tag">${book.Category}</span>
-                        <h3>${book.Title}</h3>
-                        <p>লেখক: ${book.Author}</p>
-                        <p>📍 র‍্যাক: <b>${book.Rack}</b></p>
-                        <div class="btn-group">
-                            <button class="btn btn-full" onclick="showDetails('${book.Title}', '${book.Summary}', '${book.AudioURL}')">📖 বিস্তারিত ও সামারি</button>
-                            <button class="btn btn-map" onclick="showMap('${book.Rack}')">📍 ম্যাপ</button>
-                            <button class="btn btn-audio" onclick="playAudio('${book.AudioURL}')">🔊 অডিও</button>
-                        </div>
-                    </div>
-                `;
-            });
-        } catch (error) {
-            document.getElementById('bookGrid').innerHTML = '<p style="color:red">ডেটা লোড করতে সমস্যা হয়েছে। লিঙ্ক ঠিক আছে তো?</p>';
+        const bookGrid = document.getElementById('bookGrid');
+        bookGrid.innerHTML = ''; 
+
+        if (!data || data.length === 0) {
+            bookGrid.innerHTML = '<p>শিটে কোনো বই পাওয়া যায়নি!</p>';
+            return;
         }
-    }
 
-    // স্ক্রিন লোড হলে যা ঘটবে
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const loader = document.getElementById('loader');
+        data.forEach(book => {
+            bookGrid.innerHTML += `
+                <div class="card" data-title="${book.Title}" data-cat="${book.Category}">
+                    <span class="tag">${book.Category}</span>
+                    <h3>${book.Title}</h3>
+                    <p>লেখক: ${book.Author}</p>
+                    <p>📍 র‍্যাক: <b>${book.Rack}</b></p>
+                    <div class="btn-group">
+                        <button class="btn btn-full" onclick="showDetails('${book.Title}', '${book.Summary}', '${book.AudioURL}')">📖 বিস্তারিত ও সামারি</button>
+                        <button class="btn btn-map" onclick="showMap('${book.Rack}')">📍 ম্যাপ</button>
+                        <button class="btn btn-audio" onclick="playAudio('${book.AudioURL}')">🔊 অডিও</button>
+                    </div>
+                </div>`;
+        });
+    } catch (error) {
+        console.error("Error Detail:", error);
+        document.getElementById('bookGrid').innerHTML = `
+            <div style="text-align:center; padding:20px; color:red;">
+                <p>ডেটা লোড করতে সমস্যা হয়েছে।</p>
+                <small>Apps Script-এ New Deployment দিয়েছেন তো?</small>
+            </div>`;
+    }
+}
+
+// বাকি ফাংশনগুলো (filterBooks, openModal, closeAll, showDetails, showMap, applyQuiz, playAudio) আগের মতোই থাকবে।
+
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const loader = document.getElementById('loader');
+        if(loader) {
             loader.style.opacity = '0';
             setTimeout(() => {
                 loader.style.display = 'none';
-                loadBooks(); // মেইন ইন্টারফেসে ঢোকার সাথে সাথে শিট থেকে বই লোড হবে
+                loadBooks(); 
             }, 500);
-        }, 2500);
-    });
-
-    function filterBooks() {
-        let input = document.getElementById('search').value.toLowerCase();
-        let cards = document.getElementsByClassName('card');
-        let seatEl = document.getElementById('seats');
-
-        if(input.length > 0 && seatEl.innerText == "280") {
-            seatEl.innerText = "279";
-            seatEl.style.color = "red";
         }
+    }, 2500);
+});
 
-        for (let i = 0; i < cards.length; i++) {
-            let title = cards[i].getAttribute('data-title').toLowerCase();
-            cards[i].style.display = title.includes(input) ? "block" : "none";
-        }
+// filterBooks এবং অন্যান্য ফাংশন এখানে থাকবে...
+function filterBooks() {
+    let input = document.getElementById('search').value.toLowerCase();
+    let cards = document.getElementsByClassName('card');
+    for (let i = 0; i < cards.length; i++) {
+        let title = cards[i].getAttribute('data-title').toLowerCase();
+        cards[i].style.display = title.includes(input) ? "block" : "none";
     }
+}
 
-    function openModal(id) {
-        document.getElementById('overlay').style.display = 'block';
-        document.getElementById(id).classList.add('active');
-    }
+function openModal(id) {
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById(id).classList.add('active');
+}
 
-    function closeAll() {
-        document.getElementById('overlay').style.display = 'none';
-        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-        document.getElementById('audioElement').pause();
-    }
+function closeAll() {
+    document.getElementById('overlay').style.display = 'none';
+    document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+    document.getElementById('audioElement').pause();
+}
 
-    function showDetails(title, text, audio) {
-        document.getElementById('detTitle').innerText = title;
-        document.getElementById('detText').innerText = text;
-        document.getElementById('audioElement').src = audio;
-        openModal('detModal');
-    }
+function showDetails(title, text, audio) {
+    document.getElementById('detTitle').innerText = title;
+    document.getElementById('detText').innerText = text;
+    document.getElementById('audioElement').src = audio;
+    openModal('detModal');
+}
 
-    function showMap(rack) {
-        document.getElementById('rackLoc').innerText = rack;
-        openModal('mapModal');
-    }
+function showMap(rack) {
+    document.getElementById('rackLoc').innerText = rack;
+    openModal('mapModal');
+}
 
-    function applyQuiz(cat) {
-        document.getElementById('search').value = cat;
-        filterBooks();
-        closeAll();
-    }
+function applyQuiz(cat) {
+    document.getElementById('search').value = cat;
+    filterBooks();
+    closeAll();
+}
 
-    function playAudio(url) {
-        if(url) {
-            let audio = document.getElementById('audioElement');
-            audio.src = url;
-            audio.play();
-            alert("অডিও সামারি প্লে হচ্ছে...");
-        } else {
-            alert("এই বইয়ের কোনো অডিও নেই!");
-        }
+function playAudio(url) {
+    if(url && url !== "undefined") {
+        let audio = document.getElementById('audioElement');
+        audio.src = url;
+        audio.play();
+    } else {
+        alert("এই বইয়ের কোনো অডিও নেই!");
     }
+}
 </script>
 
 </body>
