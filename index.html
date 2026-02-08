@@ -178,22 +178,32 @@
 </div>
 
 <script>
-const sheetURL = "https://script.google.com/macros/s/AKfycbyWPg7UB64gWTQnHZM6KPTpi5x9MA1FnhG1PVyZkKuLjyhRTMCP6rN0KouaerCNaHbR/exec";
+const sheetURL = "https://script.google.com/macros/s/AKfycbwEdGeq5ArZlG213NPA9uc0JhVBu-0WFVRMTiEUAhJMdVIcNz-Aekc4BT3-LmsZY8kTWw/exec";
 
 async function loadBooks() {
     try {
-        const response = await fetch(sheetURL);
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        // যেহেতু Apps Script থেকে TEXT পাঠানো হচ্ছে, তাই আগে text() হিসেবে নিতে হবে
-        const rawText = await response.text(); 
-        const data = JSON.parse(rawText); // এরপর সেটাকে JSON এ রূপান্তর
+        // এই পদ্ধতিটি রিডাইরেক্ট এবং CORS সমস্যা এড়াতে সাহায্য করবে
+        const response = await fetch(sheetURL, {
+            method: 'GET',
+            mode: 'cors', 
+            credentials: 'omit', // গুগল স্ক্রিপ্টের জন্য জরুরি
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
 
+        if (!response.ok) throw new Error('Network response was not ok');
+
+        // গুগল স্ক্রিপ্ট থেকে আসা টেক্সট ডেটা ধরা
+        const rawText = await response.text();
+        console.log("Data Received:", rawText); // চেক করার জন্য
+
+        const data = JSON.parse(rawText); 
         const bookGrid = document.getElementById('bookGrid');
         bookGrid.innerHTML = ''; 
 
         if (!data || data.length === 0) {
-            bookGrid.innerHTML = '<p>শিটে কোনো বই পাওয়া যায়নি!</p>';
+            bookGrid.innerHTML = '<p>শিটে কোনো বই পাওয়া যায়নি!</p>';
             return;
         }
 
@@ -215,12 +225,11 @@ async function loadBooks() {
         console.error("Error Detail:", error);
         document.getElementById('bookGrid').innerHTML = `
             <div style="text-align:center; padding:20px; color:red;">
-                <p>ডেটা লোড করতে সমস্যা হয়েছে।</p>
-                <small>Apps Script-এ New Deployment দিয়েছেন তো?</small>
+                <p>ডেটা কানেকশন এরর!</p>
+                <small>দয়া করে পেজটি একবার রিফ্রেশ (Ctrl+F5) দিন।</small>
             </div>`;
     }
 }
-
 // বাকি ফাংশনগুলো (filterBooks, openModal, closeAll, showDetails, showMap, applyQuiz, playAudio) আগের মতোই থাকবে।
 
 window.addEventListener('load', () => {
